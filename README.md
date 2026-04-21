@@ -324,7 +324,7 @@
     <div id="loginPage" class="login-container">
         <div class="login-card">
             <h2>🏭 SISTEM LAPORAN PRODUKSI</h2>
-            <div class="subtitle">PT. NAMA PERUSAHAAN ANDA</div>
+            <div class="subtitle">PT. UNIPACK PRINDO PACKAGING</div>
             <form id="loginForm">
                 <div class="form-group">
                     <label>Username / NIK</label>
