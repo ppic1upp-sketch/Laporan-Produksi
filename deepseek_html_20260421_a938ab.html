@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laporan Produksi - PT Unipack Prindo Packaging</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: linear-gradient(135deg, #1e5799, #2b8c5e); min-height: 100vh; padding: 20px; }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .card { background: white; border-radius: 15px; padding: 25px; margin-bottom: 20px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); }
+        .card h2 { color: #1e5799; margin-bottom: 20px; border-left: 4px solid #2b8c5e; padding-left: 15px; }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; }
+        .form-group { margin-bottom: 10px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; color: #333; }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; }
+        .btn { background: #1e5799; color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .btn-warning { background: #ff9800; }
+        .btn-danger { background: #f44336; }
+        .btn-small { padding: 6px 12px; font-size: 12px; }
+        .header { background: white; border-radius: 15px; padding: 20px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+        .user-badge { background: #1e5799; color: white; padding: 8px 16px; border-radius: 20px; }
+        .logout-btn { background: #f44336; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; }
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .tab-btn { background: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .tab-btn.active { background: #1e5799; color: white; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background: #f0f0f0; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .stat-card { background: linear-gradient(135deg, #1e5799, #2b8c5e); color: white; padding: 15px; border-radius: 10px; text-align: center; }
+        .stat-card .value { font-size: 24px; font-weight: bold; }
+        .filter-bar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .login-card { max-width: 400px; margin: 100px auto; }
+        .alert { position: fixed; top: 20px; right: 20px; padding: 15px 20px; border-radius: 8px; color: white; animation: slideIn 0.3s; z-index: 999; }
+        .alert-success { background: #4caf50; }
+        .alert-error { background: #f44336; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .readonly { background: #f5f5f5; }
+        .loading { text-align: center; padding: 20px; color: white; }
+        .performance-good { color: #4caf50; font-weight: bold; }
+        .performance-bad { color: #f44336; font-weight: bold; }
+        @media (max-width: 768px) { .form-grid { grid-template-columns: 1fr; } .header { flex-direction: column; text-align: center; gap: 10px; } }
+    </style>
+</head>
+<body>
+
+<div id="loadingPage" class="container" style="text-align:center; padding:100px">
+    <div class="loading">⏳ Memuat data...</div>
+</div>
+
+<div id="loginPage" class="container" style="display:none">
+    <div class="card login-card">
+        <h2 style="text-align:center">🏭 SISTEM LAPORAN PRODUKSI</h2>
+        <p style="text-align:center; color:#2b8c5e; margin-bottom:20px">PT. UNIPACK PRINDO PACKAGING</p>
+        <form id="loginForm">
+            <div class="form-group"><label>Username</label><input type="text" id="loginUsername" required></div>
+            <div class="form-group"><label>Password</label><input type="password" id="loginPassword" required></div>
+            <button type="submit" class="btn" style="width:100%">🔐 LOGIN</button>
+        </form>
+    </div>
+</div>
+
+<div id="appContainer" style="display:none">
+    <div class="container">
+        <div class="header">
+            <div><h2>🏭 SISTEM LAPORAN PRODUKSI</h2><small>PT. UNIPACK PRINDO PACKAGING</small></div>
+            <div><span class="user-badge" id="userRoleBadge"></span> <span id="userNameDisplay"></span> <button class="logout-btn" onclick="logout()">LOGOUT</button></div>
+        </div>
+        <div class="tabs" id="tabsContainer"></div>
+
+        <!-- TAB INPUT -->
+        <div id="tabInput" class="tab-content">
+            <div class="card">
+                <h2>📝 INPUT LAPORAN PRODUKSI</h2>
+                <form id="productionForm">
+                    <div class="form-grid">
+                        <div class="form-group"><label>Tanggal</label><input type="date" id="tanggal" required></div>
+                        <div class="form-group"><label>Shift</label><select id="shift"><option value="">Pilih</option><option>Shift 1 (Pagi)</option><option>Shift 2 (Siang)</option><option>Shift 3 (Malam)</option></select></div>
+                        <div class="form-group"><label>Operator 1</label><input type="text" id="operator1" required></div>
+                        <div class="form-group"><label>Item/Produk</label><input type="text" id="item" required></div>
+                        <div class="form-group"><label>Ukuran</label><input type="text" id="ukuran"></div>
+                        <div class="form-group"><label>Hasil Qty</label><input type="number" id="hasilQty" required oninput="hitungBersih()"></div>
+                        <div class="form-group"><label>Jumlah Roll</label><input type="number" id="jumlahRoll" value="0"></div>
+                        <div class="form-group"><label>Mesin</label><input type="text" id="mesin"></div>
+                        <div class="form-group"><label>Reject Sablon</label><input type="number" id="rejectSablon" value="0" oninput="hitungReject()"></div>
+                        <div class="form-group"><label>Reject Cutting</label><input type="number" id="rejectCutting" value="0" oninput="hitungReject()"></div>
+                        <div class="form-group"><label>Total Reject</label><input type="number" id="totalReject" class="readonly" readonly></div>
+                        <div class="form-group"><label>Jumlah Bersih</label><input type="number" id="jumlahBersih" class="readonly" readonly></div>
+                        <div class="form-group"><label>Operator 2</label><input type="text" id="operator2"></div>
+                        <div class="form-group"><label>Keterangan</label><textarea id="keterangan" rows="2"></textarea></div>
+                    </div>
+                    <button type="submit" class="btn">💾 SIMPAN</button>
+                    <button type="button" class="btn btn-warning" onclick="resetForm()">🔄 RESET</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- TAB LAPORAN SAYA -->
+        <div id="tabLaporan" class="tab-content">
+            <div class="card">
+                <h2>📊 LAPORAN SAYA</h2>
+                <div class="filter-bar">
+                    <input type="date" id="filterTanggal" placeholder="Filter tanggal">
+                    <input type="month" id="filterBulan" placeholder="Filter bulan">
+                    <button class="btn btn-small" onclick="loadLaporan()">TAMPILKAN</button>
+                    <button class="btn btn-small btn-warning" onclick="resetFilter()">RESET</button>
+                    <button class="btn btn-small" onclick="exportCSV()">EXPORT CSV</button>
+                </div>
+                <div class="stats-grid" id="statsLaporan"></div>
+                <div style="overflow-x:auto"><table id="tabelLaporan"><thead><tr><th>Tanggal</th><th>Shift</th><th>Item</th><th>Hasil</th><th>Reject</th><th>Bersih</th><th>Efisiensi</th></tr></thead><tbody id="bodyLaporan"></tbody></table></div>
+            </div>
+        </div>
+
+        <!-- TAB REKAP SEMUA (ADMIN) -->
+        <div id="tabRekap" class="tab-content">
+            <div class="card">
+                <h2>👥 REKAP SEMUA OPERATOR</h2>
+                <div class="filter-bar"><input type="month" id="rekapBulan"><button class="btn btn-small" onclick="loadRekap()">TAMPILKAN</button><button class="btn btn-small" onclick="exportRekap()">EXPORT</button></div>
+                <div style="overflow-x:auto"><table id="tabelRekap"><thead><tr><th>Rank</th><th>Operator</th><th>Divisi</th><th>Total Hasil</th><th>Total Reject</th><th>Total Bersih</th><th>Efisiensi</th><th>Laporan</th></tr></thead><tbody id="bodyRekap"></tbody></table></div>
+            </div>
+        </div>
+
+        <!-- TAB MANAJEMEN (ADMIN) -->
+        <div id="tabManajemen" class="tab-content">
+            <div class="card">
+                <h2>👨‍👩‍👧‍👦 MANAJEMEN OPERATOR</h2>
+                <div class="form-grid">
+                    <div class="form-group"><label>Username</label><input type="text" id="newUsername" placeholder="Contoh: OP001"></div>
+                    <div class="form-group"><label>Nama</label><input type="text" id="newNama" placeholder="Nama operator"></div>
+                    <div class="form-group"><label>Password</label><input type="password" id="newPassword" placeholder="Password"></div>
+                    <div class="form-group"><label>Divisi</label><select id="newDivisi"><option>Produksi</option><option>Sablon</option><option>Cutting</option><option>Finishing</option></select></div>
+                </div>
+                <button class="btn btn-small" onclick="tambahOperator()">➕ TAMBAH</button>
+                <hr style="margin:20px 0">
+                <div class="filter-bar"><input type="text" id="cariOperator" placeholder="Cari..."><button class="btn btn-small btn-warning" onclick="loadOperator()">CARI</button></div>
+                <div style="overflow-x:auto"><table id="tabelOperator"><thead><tr><th>Username</th><th>Nama</th><th>Divisi</th><th>Laporan</th><th>Aksi</th></tr></thead><tbody id="bodyOperator"></tbody></table></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ============ KONFIGURASI ============
+    // ⚠️ GANTI DENGAN GIST ID DAN TOKEN ANDA! ⚠️
+    const GIST_ID = "XXXXXXXXXX"; // Ganti dengan Gist ID Anda
+    const GITHUB_TOKEN = "github_pat_XXXXXXXXXX"; // Ganti dengan Token Anda
+    
+    let users = [];
+    let reports = [];
+    let currentUser = null;
+    let isLoading = true;
+
+    // ============ FUNGSI SAVE KE GITHUB GIST ============
+    async function saveToGist() {
+        try {
+            const data = { users: users, reports: reports };
+            const response = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `token ${GITHUB_TOKEN}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    files: {
+                        'data.json': { content: JSON.stringify(data, null, 2) }
+                    }
+                })
+            });
+            if (!response.ok) throw new Error('Gagal menyimpan');
+            return true;
+        } catch (error) {
+            console.error('Save error:', error);
+            return false;
+        }
+    }
+
+    // ============ FUNGSI LOAD DARI GITHUB GIST ============
+    async function loadFromGist() {
+        try {
+            const response = await fetch(`https://api.github.com/gists/${GIST_ID}`);
+            if (!response.ok) throw new Error('Gagal load');
+            const gist = await response.json();
+            const content = gist.files['data.json']?.content || '{"users":[],"reports":[]}';
+            const data = JSON.parse(content);
+            users = data.users || [];
+            reports = data.reports || [];
+            
+            // Default admin jika kosong
+            if (users.length === 0) {
+                users = [
+                    { username: 'admin', nama: 'Administrator', password: 'admin123', role: 'admin', divisi: 'Management' },
+                    { username: 'OP001', nama: 'Budi Santoso', password: 'pass1', role: 'operator', divisi: 'Produksi' },
+                    { username: 'OP002', nama: 'Siti Nurhaliza', password: 'pass2', role: 'operator', divisi: 'Sablon' },
+                    { username: 'OP003', nama: 'Ahmad Wijaya', password: 'pass3', role: 'operator', divisi: 'Cutting' }
+                ];
+                await saveToGist();
+            }
+            return true;
+        } catch (error) {
+            console.error('Load error:', error);
+            return false;
+        }
+    }
+
+    // ============ FUNGSI HITUNG ============
+    function hitungReject() {
+        let rs = parseInt(document.getElementById('rejectSablon').value) || 0;
+        let rc = parseInt(document.getElementById('rejectCutting').value) || 0;
+        document.getElementById('totalReject').value = rs + rc;
+        hitungBersih();
+    }
+    function hitungBersih() {
+        let hasil = parseInt(document.getElementById('hasilQty').value) || 0;
+        let reject = parseInt(document.getElementById('totalReject').value) || 0;
+        document.getElementById('jumlahBersih').value = Math.max(0, hasil - reject);
+    }
+
+    // ============ LOGIN ============
+    async function login(username, password) {
+        let user = users.find(u => u.username === username && u.password === password);
+        if (user) {
+            currentUser = user;
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            document.getElementById('loginPage').style.display = 'none';
+            document.getElementById('appContainer').style.display = 'block';
+            let isAdmin = currentUser.role === 'admin';
+            document.getElementById('userRoleBadge').innerHTML = isAdmin ? '👑 ADMIN' : '👤 OPERATOR';
+            document.getElementById('userNameDisplay').innerHTML = `${currentUser.nama}`;
+            
+            let tabs = [{ id: 'tabInput', name: '📝 INPUT' }, { id: 'tabLaporan', name: '📊 LAPORAN' }];
+            if (isAdmin) tabs.push({ id: 'tabRekap', name: '👥 REKAP' }, { id: 'tabManajemen', name: '👨‍👩‍👧‍👦 MANAJEMEN' });
+            document.getElementById('tabsContainer').innerHTML = tabs.map(t => `<button class="tab-btn" onclick="switchTab('${t.id}')">${t.name}</button>`).join('');
+            
+            document.getElementById('tanggal').valueAsDate = new Date();
+            switchTab('tabInput');
+            loadLaporan();
+            if (isAdmin) { loadRekap(); loadOperator(); }
+            showAlert(`Selamat datang ${user.nama}!`, 'success');
+        } else showAlert('Username/password salah!', 'error');
+    }
+    
+    function logout() { 
+        currentUser = null; 
+        localStorage.removeItem('currentUser'); 
+        document.getElementById('loginPage').style.display = 'flex'; 
+        document.getElementById('appContainer').style.display = 'none'; 
+    }
+    
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        if (event && event.target) event.target.classList.add('active');
+    }
+    
+    function resetForm() { 
+        document.getElementById('productionForm').reset(); 
+        document.getElementById('tanggal').valueAsDate = new Date(); 
+        document.getElementById('totalReject').value = ''; 
+        document.getElementById('jumlahBersih').value = ''; 
+    }
+
+    // ============ SIMPAN LAPORAN ============
+    document.getElementById('productionForm')?.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        let data = {
+            id: Date.now(),
+            tanggal: document.getElementById('tanggal').value,
+            shift: document.getElementById('shift').value,
+            operator1: document.getElementById('operator1').value,
+            item: document.getElementById('item').value,
+            ukuran: document.getElementById('ukuran').value,
+            hasilQty: parseInt(document.getElementById('hasilQty').value) || 0,
+            jumlahRoll: parseInt(document.getElementById('jumlahRoll').value) || 0,
+            mesin: document.getElementById('mesin').value,
+            rejectSablon: parseInt(document.getElementById('rejectSablon').value) || 0,
+            rejectCutting: parseInt(document.getElementById('rejectCutting').value) || 0,
+            totalReject: parseInt(document.getElementById('totalReject').value) || 0,
+            jumlahBersih: parseInt(document.getElementById('jumlahBersih').value) || 0,
+            operator2: document.getElementById('operator2').value,
+            keterangan: document.getElementById('keterangan').value,
+            createdBy: currentUser.username,
+            createdByName: currentUser.nama,
+            createdAt: new Date().toISOString()
+        };
+        reports.push(data);
+        await saveToGist();
+        showAlert('Laporan tersimpan!', 'success');
+        resetForm();
+        loadLaporan();
+        if (currentUser.role === 'admin') loadRekap();
+    });
+
+    // ============ LOAD LAPORAN SAYA ============
+    function loadLaporan() {
+        let filtered = reports.filter(r => r.createdBy === currentUser.username);
+        let tgl = document.getElementById('filterTanggal').value;
+        let bln = document.getElementById('filterBulan').value;
+        if (tgl) filtered = filtered.filter(r => r.tanggal === tgl);
+        if (bln) filtered = filtered.filter(r => r.tanggal.startsWith(bln));
+        
+        let totalHasil = filtered.reduce((s,r) => s + r.hasilQty, 0);
+        let totalReject = filtered.reduce((s,r) => s + r.totalReject, 0);
+        let totalBersih = filtered.reduce((s,r) => s + r.jumlahBersih, 0);
+        let efisiensi = totalHasil > 0 ? ((totalBersih / totalHasil) * 100).toFixed(1) : 0;
+        document.getElementById('statsLaporan').innerHTML = `<div class="stat-card"><h3>Total Hasil</h3><div class="value">${totalHasil}</div></div><div class="stat-card"><h3>Total Reject</h3><div class="value">${totalReject}</div></div><div class="stat-card"><h3>Total Bersih</h3><div class="value">${totalBersih}</div></div><div class="stat-card"><h3>Efisiensi</h3><div class="value">${efisiensi}%</div></div>`;
+        
+        let tbody = document.getElementById('bodyLaporan');
+        tbody.innerHTML = '';
+        filtered.sort((a,b) => b.tanggal.localeCompare(a.tanggal));
+        filtered.forEach(r => {
+            let ef = r.hasilQty > 0 ? ((r.jumlahBersih / r.hasilQty) * 100).toFixed(1) : 0;
+            tbody.insertRow().innerHTML = `<td>${r.tanggal}</td><td>${r.shift}</td><td>${r.item}</td><td>${r.hasilQty}</td><td>${r.totalReject}</td><td>${r.jumlahBersih}</td><td class="${ef>=80?'performance-good':'performance-bad'}">${ef}%</td>`;
+        });
+        if (filtered.length === 0) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center">Belum ada data</td></tr>';
+    }
+    
+    function resetFilter() { document.getElementById('filterTanggal').value = ''; document.getElementById('filterBulan').value = ''; loadLaporan(); }
+
+    // ============ REKAP SEMUA (ADMIN) ============
+    function loadRekap() {
+        let bulan = document.getElementById('rekapBulan').value || new Date().toISOString().slice(0,7);
+        document.getElementById('rekapBulan').value = bulan;
+        let filtered = reports.filter(r => r.tanggal.startsWith(bulan));
+        let stats = {};
+        filtered.forEach(r => {
+            if (!stats[r.createdBy]) {
+                let user = users.find(u => u.username === r.createdBy);
+                stats[r.createdBy] = { nama: r.createdByName, divisi: user?.divisi || '-', hasil:0, reject:0, bersih:0, count:0 };
+            }
+            stats[r.createdBy].hasil += r.hasilQty;
+            stats[r.createdBy].reject += r.totalReject;
+            stats[r.createdBy].bersih += r.jumlahBersih;
+            stats[r.createdBy].count++;
+        });
+        let sorted = Object.entries(stats).sort((a,b) => (b[1].bersih/b[1].hasil) - (a[1].bersih/a[1].hasil));
+        let tbody = document.getElementById('bodyRekap');
+        tbody.innerHTML = '';
+        sorted.forEach(([key, val], idx) => {
+            let ef = val.hasil > 0 ? ((val.bersih / val.hasil) * 100).toFixed(1) : 0;
+            tbody.insertRow().innerHTML = `<td>${idx+1}</td><td>${val.nama}</td><td>${val.divisi}</td><td>${val.hasil.toLocaleString()}</td><td>${val.reject.toLocaleString()}</td><td>${val.bersih.toLocaleString()}</td><td class="${ef>=80?'performance-good':'performance-bad'}">${ef}%</td><td>${val.count}</td>`;
+        });
+        if (sorted.length === 0) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center">Belum ada data</td></tr>';
+    }
+
+    // ============ MANAJEMEN OPERATOR (ADMIN) ============
+    function loadOperator() {
+        let search = document.getElementById('cariOperator')?.value.toLowerCase() || '';
+        let filtered = users.filter(u => u.role !== 'admin');
+        if (search) filtered = filtered.filter(u => u.username.toLowerCase().includes(search) || u.nama.toLowerCase().includes(search));
+        let tbody = document.getElementById('bodyOperator');
+        tbody.innerHTML = '';
+        filtered.forEach(u => {
+            let userReports = reports.filter(r => r.createdBy === u.username);
+            tbody.insertRow().innerHTML = `<td>${u.username}</td><td>${u.nama}</td><td>${u.divisi}</td><td>${userReports.length}</td><td><button class="btn-small btn-danger" onclick="hapusOperator('${u.username}')">Hapus</button></td>`;
+        });
+    }
+    
+    async function tambahOperator() {
+        let username = document.getElementById('newUsername').value.trim();
+        let nama = document.getElementById('newNama').value.trim();
+        let password = document.getElementById('newPassword').value;
+        let divisi = document.getElementById('newDivisi').value;
+        if (!username || !nama || !password) { showAlert('Isi semua field!', 'error'); return; }
+        if (users.find(u => u.username === username)) { showAlert('Username sudah ada!', 'error'); return; }
+        users.push({ username, nama, password, role: 'operator', divisi });
+        await saveToGist();
+        showAlert('Operator ditambahkan!', 'success');
+        document.getElementById('newUsername').value = '';
+        document.getElementById('newNama').value = '';
+        document.getElementById('newPassword').value = '';
+        loadOperator();
+        loadRekap();
+    }
+    
+    async function hapusOperator(username) {
+        if (confirm(`Hapus operator ${username}? Data laporannya juga hilang.`)) {
+            users = users.filter(u => u.username !== username);
+            reports = reports.filter(r => r.createdBy !== username);
+            await saveToGist();
+            loadOperator();
+            loadRekap();
+            showAlert('Operator dihapus!', 'success');
+        }
+    }
+
+    // ============ EXPORT CSV ============
+    function exportCSV() {
+        let filtered = reports.filter(r => r.createdBy === currentUser.username);
+        let csv = "Tanggal,Shift,Item,Ukuran,HasilQty,Roll,Mesin,RejectSablon,RejectCutting,TotalReject,JumlahBersih,Operator2,Keterangan\n";
+        filtered.forEach(r => csv += `"${r.tanggal}","${r.shift}","${r.item}","${r.ukuran||''}",${r.hasilQty},${r.jumlahRoll},"${r.mesin||''}",${r.rejectSablon},${r.rejectCutting},${r.totalReject},${r.jumlahBersih},"${r.operator2||''}","${r.keterangan||''}"\n`);
+        downloadCSV(csv, `laporan_${currentUser.username}.csv`);
+    }
+    
+    function exportRekap() {
+        let bulan = document.getElementById('rekapBulan').value || new Date().toISOString().slice(0,7);
+        let filtered = reports.filter(r => r.tanggal.startsWith(bulan));
+        let csv = "Tanggal,Operator,Divisi,Item,HasilQty,Reject,Bersih\n";
+        filtered.forEach(r => {
+            let user = users.find(u => u.username === r.createdBy);
+            csv += `"${r.tanggal}","${r.createdByName}","${user?.divisi||'-'}","${r.item}",${r.hasilQty},${r.totalReject},${r.jumlahBersih}\n`;
+        });
+        downloadCSV(csv, `rekap_${bulan}.csv`);
+    }
+    
+    function downloadCSV(csv, nama) {
+        let blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+        let a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = nama;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        showAlert('Export berhasil!', 'success');
+    }
+    
+    function showAlert(msg, type) { 
+        let a = document.createElement('div'); 
+        a.className = `alert alert-${type}`; 
+        a.textContent = msg; 
+        document.body.appendChild(a); 
+        setTimeout(() => a.remove(), 3000); 
+    }
+
+    // ============ START ============
+    async function init() {
+        await loadFromGist();
+        isLoading = false;
+        document.getElementById('loadingPage').style.display = 'none';
+        document.getElementById('loginPage').style.display = 'flex';
+        
+        let saved = localStorage.getItem('currentUser');
+        if (saved) {
+            let savedUser = JSON.parse(saved);
+            let userExists = users.find(u => u.username === savedUser.username);
+            if (userExists) {
+                await login(savedUser.username, savedUser.password);
+            }
+        }
+    }
+    
+    document.getElementById('loginForm')?.addEventListener('submit', (e) => { 
+        e.preventDefault(); 
+        login(document.getElementById('loginUsername').value, document.getElementById('loginPassword').value); 
+    });
+    
+    init();
+</script>
+</body>
+</html>
